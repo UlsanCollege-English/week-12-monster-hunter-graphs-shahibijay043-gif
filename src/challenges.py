@@ -1,38 +1,78 @@
 """Week 12: Monster Hunter Graphs.
 
-Professional graph utility implementations using Python 3.11+.
+
+This module provides:
+- Unweighted graph construction
+- Weighted graph construction
+- Graph analytics
+- Priority-based hunt ordering
+
+Author:Bijay Shahi
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-import heapq
 from typing import DefaultDict
+import heapq
 
 
+# =========================================================
+# Type Aliases
+# =========================================================
 
 Graph = dict[str, list[str]]
 WeightedGraph = dict[str, dict[str, int]]
 
 
+# =========================================================
+# Graph Construction Utilities
+# =========================================================
+
 def build_hunter_map(
     edges: list[tuple[str, str]],
 ) -> Graph:
     """
-    Build an undirected adjacency list from route pairs.
+    Build an undirected adjacency-list graph.
 
     Args:
-        edges: List of (start, end) route pairs.
+        edges:
+            List of route pairs representing connections
+            between monster hunting locations.
 
     Returns:
-        Sorted adjacency-list graph.
+        A dictionary where:
+        - keys are locations
+        - values are sorted neighboring locations
+
+    Example:
+        >>> build_hunter_map([
+        ...     ("Village", "Forest"),
+        ...     ("Forest", "Castle")
+        ... ])
+        {
+            'Forest': ['Castle', 'Village'],
+            'Village': ['Forest'],
+            'Castle': ['Forest']
+        }
     """
 
-    graph: DefaultDict[str, set[str]] = defaultdict(set)
+    graph: DefaultDict[str, set[str]]
+    graph = defaultdict(set)
 
     for start, end in edges:
 
-        if not start or not end:
+        if not isinstance(start, str):
+            raise TypeError(
+                "Start location must be a string."
+            )
+
+        if not isinstance(end, str):
+            raise TypeError(
+                "End location must be a string."
+            )
+
+        if not start.strip() or not end.strip():
             raise ValueError(
                 "Locations cannot be empty."
             )
@@ -52,13 +92,42 @@ def build_weighted_hunter_map(
     """
     Build an undirected weighted graph.
 
-    Keeps the smallest danger score if duplicate routes exist.
+    Each edge contains:
+    - start location
+    - end location
+    - danger score
+
+    Duplicate routes keep the LOWEST danger score.
+
+    Args:
+        edges:
+            List of weighted route tuples.
+
+    Returns:
+        A weighted adjacency dictionary.
+
+    Raises:
+        TypeError:
+            If danger score is not an integer.
+
+        ValueError:
+            If danger score is non-positive.
     """
 
     graph: DefaultDict[str, dict[str, int]]
     graph = defaultdict(dict)
 
     for start, end, danger_score in edges:
+
+        if not isinstance(start, str):
+            raise TypeError(
+                "Start location must be a string."
+            )
+
+        if not isinstance(end, str):
+            raise TypeError(
+                "End location must be a string."
+            )
 
         if not isinstance(danger_score, int):
             raise TypeError(
@@ -70,7 +139,7 @@ def build_weighted_hunter_map(
                 "Danger score must be positive."
             )
 
-        if not start or not end:
+        if not start.strip() or not end.strip():
             raise ValueError(
                 "Locations cannot be empty."
             )
@@ -90,17 +159,30 @@ def build_weighted_hunter_map(
     }
 
 
+# =========================================================
+# Graph Analytics
+# =========================================================
+
 def map_summary(
     graph: Graph,
 ) -> dict[str, int]:
     """
-    Return summary statistics for the hunter map.
+    Generate summary statistics for the graph.
+
+    Args:
+        graph:
+            Hunter map adjacency list.
+
+    Returns:
+        Dictionary containing:
+        - total locations
+        - total routes
     """
 
-    total_routes = sum(
-        len(neighbors)
-        for neighbors in graph.values()
-    ) // 2
+    total_routes = (
+        sum(len(neighbors)
+        for neighbors in graph.values()) // 2
+    )
 
     return {
         "locations": len(graph),
@@ -112,9 +194,17 @@ def most_connected_location(
     graph: Graph,
 ) -> str | None:
     """
-    Return the location with the most neighboring routes.
+    Find the location with the most neighbors.
 
     Ties are resolved alphabetically.
+
+    Args:
+        graph:
+            Hunter map adjacency list.
+
+    Returns:
+        The most connected location or None
+        if graph is empty.
     """
 
     if not graph:
@@ -129,21 +219,32 @@ def most_connected_location(
     )
 
 
+# =========================================================
+# Priority Queue Utilities
+# =========================================================
 
 def priority_hunt_order(
     reports: list[tuple[int, str]],
 ) -> list[str]:
     """
-    Return locations ordered from highest urgency
-    to lowest urgency.
+    Determine hunt order using a priority queue.
 
-    Lower numeric value = higher priority.
+    Lower numeric value indicates
+    HIGHER urgency.
+
+    Args:
+        reports:
+            List of:
+            (priority, location)
+
+    Returns:
+        Ordered list of locations.
     """
 
     if not reports:
         return []
 
-    priority_queue = reports[:]
+    priority_queue = reports.copy()
 
     heapq.heapify(priority_queue)
 
@@ -151,7 +252,7 @@ def priority_hunt_order(
 
     while priority_queue:
 
-        priority, location = heapq.heappop(
+        _, location = heapq.heappop(
             priority_queue
         )
 
@@ -160,64 +261,9 @@ def priority_hunt_order(
     return ordered_locations
 
 
-
-def main() -> None:
-    """
-    Example execution for GitHub Classroom
-    autograder compatibility.
-    """
-
-    routes = [
-        ("Village", "Forest"),
-        ("Forest", "Castle"),
-        ("Village", "Lake"),
-        ("Lake", "Castle"),
-    ]
-
-    weighted_routes = [
-        ("Village", "Forest", 3),
-        ("Forest", "Castle", 5),
-        ("Village", "Lake", 2),
-        ("Lake", "Castle", 4),
-    ]
-
-    reports = [
-        (1, "Castle"),
-        (3, "Forest"),
-        (2, "Lake"),
-    ]
-
-    graph = build_hunter_map(routes)
-
-    weighted_graph = build_weighted_hunter_map(
-        weighted_routes
-    )
-
-    print("Hunter Map:")
-    print(graph)
-
-    print("\nWeighted Hunter Map:")
-    print(weighted_graph)
-
-    print("\nMap Summary:")
-    print(map_summary(graph))
-
-    print("\nMost Connected Location:")
-    print(
-        most_connected_location(graph)
-    )
-
-    print("\nPriority Hunt Order:")
-    print(
-        priority_hunt_order(reports)
-    )
-def main():
-    print("Monster Hunter Graphs Loaded")
-
+# =========================================================
+# Module Execution Guard
+# =========================================================
 
 if __name__ == "__main__":
-    main()
-
-
-
-    
+    pass
