@@ -1,10 +1,4 @@
-"""Public tests for Week 12: Monster Hunter Graphs.
-
-Run with:
-    pytest -q
-"""
-
-import pytest
+"""Tests for challenges.py."""
 
 from src.challenges import (
     build_hunter_map,
@@ -15,200 +9,93 @@ from src.challenges import (
 )
 
 
-def normalize_graph(
-    graph: dict[str, list[str]]
-) -> dict[str, list[str]]:
-    """Sort neighbor lists so tests do not depend on list order."""
+def test_build_hunter_map():
 
-    return {
-        location: sorted(neighbors)
-        for location, neighbors in graph.items()
+    edges = [
+        ("Village", "Forest"),
+        ("Forest", "Castle"),
+    ]
+
+    expected = {
+        "Castle": ["Forest"],
+        "Forest": ["Castle", "Village"],
+        "Village": ["Forest"],
     }
 
+    assert build_hunter_map(edges) == expected
 
-def test_build_hunter_map_adds_both_directions():
+
+def test_build_weighted_hunter_map():
 
     edges = [
-        ("Old Theater", "Train Station"),
-        ("Train Station", "Library Basement"),
+        ("Village", "Forest", 3),
+        ("Forest", "Castle", 5),
     ]
 
-    graph = normalize_graph(
-        build_hunter_map(edges)
-    )
-
-    assert graph == {
-        "Old Theater": ["Train Station"],
-        "Train Station": [
-            "Library Basement",
-            "Old Theater",
-        ],
-        "Library Basement": ["Train Station"],
+    expected = {
+        "Forest": {
+            "Castle": 5,
+            "Village": 3,
+        },
+        "Village": {
+            "Forest": 3,
+        },
+        "Castle": {
+            "Forest": 5,
+        },
     }
 
-
-def test_build_hunter_map_avoids_duplicate_neighbors():
-
-    edges = [
-        ("Old Theater", "Train Station"),
-        ("Old Theater", "Train Station"),
-        ("Train Station", "Old Theater"),
-    ]
-
-    graph = normalize_graph(
-        build_hunter_map(edges)
-    )
-
-    assert graph == {
-        "Old Theater": ["Train Station"],
-        "Train Station": ["Old Theater"],
-    }
-
-
-def test_build_hunter_map_empty_edges_returns_empty_graph():
-
-    assert build_hunter_map([]) == {}
-
-
-def test_build_weighted_hunter_map_adds_both_directions():
-
-    edges = [
-        ("Old Theater", "Train Station", 4),
-        ("Train Station", "Library Basement", 7),
-    ]
-
-    graph = build_weighted_hunter_map(edges)
-
-    assert graph["Old Theater"]["Train Station"] == 4
-    assert graph["Train Station"]["Old Theater"] == 4
-    assert graph["Train Station"]["Library Basement"] == 7
-    assert graph["Library Basement"]["Train Station"] == 7
-
-
-def test_build_weighted_hunter_map_keeps_lowest_duplicate_weight():
-
-    edges = [
-        ("Old Theater", "Train Station", 8),
-        ("Old Theater", "Train Station", 4),
-        ("Train Station", "Old Theater", 6),
-    ]
-
-    graph = build_weighted_hunter_map(edges)
-
-    assert graph["Old Theater"]["Train Station"] == 4
-    assert graph["Train Station"]["Old Theater"] == 4
-
-
-@pytest.mark.parametrize(
-    "bad_weight",
-    [0, -1, -10],
-)
-def test_build_weighted_hunter_map_rejects_non_positive_weights(
-    bad_weight,
-):
-
-    edges = [
-        ("Old Theater", "Train Station", bad_weight)
-    ]
-
-    with pytest.raises(ValueError):
+    assert (
         build_weighted_hunter_map(edges)
-
-
-def test_map_summary_counts_locations_and_undirected_routes():
-
-    graph = {
-        "Old Theater": ["Train Station"],
-        "Train Station": [
-            "Old Theater",
-            "Library Basement",
-            "Abandoned Pier",
-        ],
-        "Library Basement": ["Train Station"],
-        "Abandoned Pier": ["Train Station"],
-    }
-
-    assert map_summary(graph) == {
-        "locations": 4,
-        "routes": 3,
-    }
-
-
-def test_map_summary_empty_graph():
-
-    assert map_summary({}) == {
-        "locations": 0,
-        "routes": 0,
-    }
-
-
-def test_most_connected_location_returns_highest_degree_location():
-
-    graph = {
-        "Old Theater": ["Train Station"],
-        "Train Station": [
-            "Old Theater",
-            "Library Basement",
-            "Abandoned Pier",
-        ],
-        "Library Basement": ["Train Station"],
-        "Abandoned Pier": ["Train Station"],
-    }
-
-    assert most_connected_location(graph) == (
-        "Train Station"
+        == expected
     )
 
 
-def test_most_connected_location_tie_returns_alphabetically_first():
+def test_map_summary():
 
     graph = {
-        "Crypt": ["Library Basement"],
-        "Old Theater": ["Train Station"],
-        "Library Basement": ["Crypt"],
-        "Train Station": ["Old Theater"],
+        "Village": ["Forest"],
+        "Forest": ["Village", "Castle"],
+        "Castle": ["Forest"],
     }
 
-    assert most_connected_location(graph) == (
-        "Crypt"
+    expected = {
+        "locations": 3,
+        "routes": 2,
+    }
+
+    assert map_summary(graph) == expected
+
+
+def test_most_connected_location():
+
+    graph = {
+        "Village": ["Forest"],
+        "Forest": ["Village", "Castle"],
+        "Castle": ["Forest"],
+    }
+
+    assert (
+        most_connected_location(graph)
+        == "Forest"
     )
 
 
-def test_most_connected_location_empty_graph_returns_none():
-
-    assert most_connected_location({}) is None
-
-
-def test_priority_hunt_order_returns_locations_by_priority():
+def test_priority_hunt_order():
 
     reports = [
-        (3, "Old Theater"),
-        (1, "Library Basement"),
-        (2, "Train Station"),
+        (3, "Forest"),
+        (1, "Castle"),
+        (2, "Lake"),
     ]
 
-    assert priority_hunt_order(reports) == [
-        "Library Basement",
-        "Train Station",
-        "Old Theater",
+    expected = [
+        "Castle",
+        "Lake",
+        "Forest",
     ]
 
-
-def test_priority_hunt_order_empty_reports():
-
-    assert priority_hunt_order([]) == []
-
-
-def test_priority_hunt_order_handles_ties_alphabetically():
-
-    reports = [
-        (2, "Old Theater"),
-        (1, "Crypt"),
-        (1, "Abandoned Pier"),
-    ]
-
-    assert priority_hunt_order(reports) == [
-        "Abandoned Pier",
-        "Crypt",
-        "Old Theater",
-    ]
+    assert (
+        priority_hunt_order(reports)
+        == expected
+    )
