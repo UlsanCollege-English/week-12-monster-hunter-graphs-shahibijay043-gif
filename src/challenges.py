@@ -211,7 +211,13 @@ def main() -> None:
     print(
         priority_hunt_order(reports)
     )
+def main():
+    print("Monster Hunter Graphs Loaded")
 
 
 if __name__ == "__main__":
     main()
+
+
+
+    
